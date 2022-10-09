@@ -1,0 +1,1 @@
+spring.jpa.hibernate.hibernate.multi_tenant_connection_provider: org.hibernate.engine.jdbc.connections.spi.DataSourceBasedMultiTenantConnectionProviderImpl

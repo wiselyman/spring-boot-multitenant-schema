@@ -1,23 +1,25 @@
 package top.wisely.springbootmultitenantschema;
 
 
+import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.stereotype.Component;
 
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Map;
 
 
 @Component
-public class WiselyMultiTenantConnectionProvider implements MultiTenantConnectionProvider {
+public class WiselyMultiTenantConnectionProvider implements MultiTenantConnectionProvider, HibernatePropertiesCustomizer {
+
 
     private final DataSource dataSource;
 
-    public WiselyMultiTenantConnectionProvider(DataSource dataSource) {
+    public WiselyMultiTenantConnectionProvider(DataSource dataSource){
         this.dataSource = dataSource;
     }
 
@@ -34,15 +36,14 @@ public class WiselyMultiTenantConnectionProvider implements MultiTenantConnectio
 
     @Override
     public Connection getConnection(String tenantIdentifier) throws SQLException {
-        String schema = tenantIdentifier;
         final Connection connection = getAnyConnection();
-        connection.setSchema(schema);
+        connection.createStatement().execute(String.format("use %s;", tenantIdentifier));
         return connection;
     }
 
     @Override
     public void releaseConnection(String tenantIdentifier, Connection connection) throws SQLException {
-        connection.setSchema("public");
+        connection.createStatement().execute("use public;");
         connection.close();
     }
 
@@ -60,5 +61,10 @@ public class WiselyMultiTenantConnectionProvider implements MultiTenantConnectio
     @Override
     public <T> T unwrap(Class<T> unwrapType) {
         throw new UnsupportedOperationException("Can't unwrap this.");
+    }
+
+    @Override
+    public void customize(Map<String, Object> hibernateProperties) {
+        hibernateProperties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER, this);
     }
 }
